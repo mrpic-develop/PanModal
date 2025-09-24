@@ -409,12 +409,31 @@ private extension PanModalPresentationController {
      & configures its layout constraints.
      */
     func addDragIndicatorView(to view: UIView) {
-        view.addSubview(dragIndicatorView)
-        dragIndicatorView.translatesAutoresizingMaskIntoConstraints = false
-        dragIndicatorView.bottomAnchor.constraint(equalTo: view.topAnchor, constant: -Constants.indicatorYOffset).isActive = true
-        dragIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        dragIndicatorView.widthAnchor.constraint(equalToConstant: Constants.dragIndicatorSize.width).isActive = true
-        dragIndicatorView.heightAnchor.constraint(equalToConstant: Constants.dragIndicatorSize.height).isActive = true
+        // iOS 26 대응: 오토레이아웃 대신 프레임 기반 배치
+        if #available(iOS 26.0, *) {
+            let window = view.window ?? UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }
+
+            let centerX = window?.bounds.midX ?? view.bounds.midX
+            // 프레임 기반 배치
+            let x = centerX - (Constants.dragIndicatorSize.width / 2)
+            dragIndicatorView.frame = CGRect(
+                x: x,
+                y: -Constants.indicatorYOffset - Constants.dragIndicatorSize.height,
+                width: Constants.dragIndicatorSize.width,
+                height: Constants.dragIndicatorSize.height
+            )
+        } else {
+            // iOS 26 미만: 기존 오토레이아웃
+            view.addSubview(dragIndicatorView)
+            dragIndicatorView.translatesAutoresizingMaskIntoConstraints = false
+            dragIndicatorView.bottomAnchor.constraint(equalTo: view.topAnchor, constant: -Constants.indicatorYOffset).isActive = true
+            dragIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+            dragIndicatorView.widthAnchor.constraint(equalToConstant: Constants.dragIndicatorSize.width).isActive = true
+            dragIndicatorView.heightAnchor.constraint(equalToConstant: Constants.dragIndicatorSize.height).isActive = true
+        }
     }
 
     /**
@@ -854,13 +873,22 @@ private extension PanModalPresentationController {
         }
 
         // Set path as a mask to display optional drag indicator view & rounded corners
-        let mask = CAShapeLayer()
-        mask.path = path.cgPath
-        view.layer.mask = mask
-
-        // Improve performance by rasterizing the layer
-        view.layer.shouldRasterize = true
-        view.layer.rasterizationScale = UIScreen.main.scale
+        if #available(iOS 26.0, *) {
+            // iOS 26+: cornerRadius 방식
+            view.layer.mask = nil
+            view.layer.cornerRadius = radius
+            view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            view.layer.masksToBounds = true
+            view.layer.shouldRasterize = true
+            view.layer.rasterizationScale = UIScreen.main.scale
+        } else {
+            // iOS 26 미만: path를 mask로 적용
+            let mask = CAShapeLayer()
+            mask.path = path.cgPath
+            view.layer.mask = mask
+            view.layer.shouldRasterize = true
+            view.layer.rasterizationScale = UIScreen.main.scale
+        }
     }
 
     /**
