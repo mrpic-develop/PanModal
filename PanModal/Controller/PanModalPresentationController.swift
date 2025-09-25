@@ -409,8 +409,8 @@ private extension PanModalPresentationController {
      & configures its layout constraints.
      */
     func addDragIndicatorView(to view: UIView) {
-        // iOS 26 대응: 오토레이아웃 대신 프레임 기반 배치
-        // 막대기가 View 위로 삐져나오지 않음. 원할 경우 DragIndicator 나오지 않는 원인은 추가 분석 필요
+        // iOS26 대응: 오토레이아웃 대신 프레임 기반 배치
+        // iOS26 이후 DragIndicator 가 View 위로 삐져나오지 않음, 디자인 상 원치 않을 것 같아서, height: 높이 0으로 설정
         if #available(iOS 26.0, *) {
             let window = view.window ?? UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
@@ -423,9 +423,9 @@ private extension PanModalPresentationController {
             view.addSubview(dragIndicatorView)
             dragIndicatorView.frame = CGRect(
                 x: x,
-                y: -Constants.indicatorYOffset - Constants.dragIndicatorSize.height,
+                y: Constants.indicatorYOffset,
                 width: Constants.dragIndicatorSize.width,
-                height: Constants.dragIndicatorSize.height
+                height: 0 // Constants.dragIndicatorSize.height
             )
         } else {
             // iOS 26 미만: 기존 오토레이아웃
